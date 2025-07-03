@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ButtonProps } from "@mui/material";
 import type { FocusEventHandler, ReactNode, RefObject } from 'react';
 import type { ValidationRule } from 'react-hook-form';
