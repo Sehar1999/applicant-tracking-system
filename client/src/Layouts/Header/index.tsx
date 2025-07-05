@@ -1,26 +1,28 @@
-import { AppBar, Box, Stack, Toolbar } from "@mui/material";
+import { AppBar, Box, Stack, Toolbar, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { UserRoleEnum, type UserRole } from "../../types";
-import { useRouter } from "../../hooks/useRouter";
-import { useAuthStore } from "../../zustand/auth/store";
+import { AccountPopover } from "../../components/AccountPopper";
+import { NavButton } from "../../components/NavButtons";
 import { NAV_ITEMS, ROUTES } from "../../constants";
 import { headerStyle } from "../../constants/StyledConstants";
-import { NavButton } from "../../components/NavButtons";
-import { AccountPopover } from "../../components/AccountPopper";
+import { useRouter } from "../../hooks/useRouter";
+import { UserRoleEnum } from "../../types";
+import { useAuthStore } from "../../zustand/auth/store";
 
 export const Header = ({ isAuth }: { isAuth?: boolean }) => {
   const theme = useTheme();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { role } = user ?? {};
 
-  const filteredNavItems = NAV_ITEMS.filter((item) => {
-    if (item.path === ROUTES.main.resumes) {
-      return user?.roles.some(
-        (role: UserRole) => role.name === UserRoleEnum.RECRUITER
-      );
-    }
-    return true;
-  });
+  // const filteredNavItems = NAV_ITEMS.filter((item) => {
+  //   // Only show resumes nav button to recruiters
+  //   if (item.path === ROUTES.main.resumes && role !== UserRoleEnum.RECRUITER) {
+  //     return false;
+  //   }
+  //   return true;
+  // });
+
+  const filteredNavItems = role === UserRoleEnum.RECRUITER ? NAV_ITEMS : [];
 
   return (
     <AppBar
@@ -40,11 +42,28 @@ export const Header = ({ isAuth }: { isAuth?: boolean }) => {
       >
         {/* Logo */}
         <Box
-          sx={{ cursor: "pointer", width: 80, "& svg": { width: "100%" } }}
+          sx={{
+            cursor: "pointer",
+            width: 120,
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            "& svg": {
+              width: "100%",
+              height: "auto",
+              maxHeight: "60px",
+            },
+          }}
           onClick={() => router.push(ROUTES.main.dashboard)}
         >
-          {/* <Logo /> */}
-          Logo
+          <Typography
+            variant="h3"
+            color="primary"
+            fontWeight="bold"
+            fontStyle="italic"
+          >
+            ATS
+          </Typography>
         </Box>
 
         {!isAuth && (

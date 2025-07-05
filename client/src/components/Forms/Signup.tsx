@@ -13,22 +13,34 @@ export const Signup = () => {
   const { setAuth } = useAuthStore();
   const { mutate, isPending } = useSignup();
 
-  const onSuccess = ({ token: { access_token }, user }: SignupResponse) => {
-    setAuth(access_token, user);
-    router.replace(ROUTES.main.dashboard);
+  const onSuccess = (response: SignupResponse) => {
+    const { success, message, data } = response ?? {};
+    if (success) {
+      const { accessToken, user } = data ?? {};
+      setAuth(accessToken, user);
+      enqueueSnackbar(message || "Account created successfully!", {
+        variant: "success",
+      });
+      router.replace(ROUTES.main.dashboard);
+    } else {
+      enqueueSnackbar(message || "Signup failed", {
+        variant: "error",
+      });
+    }
   };
 
   const onError = (error: Error) => {
     try {
-      // Parse the error message which is a JSON string
+      // Try to parse the error response
       const errorData = JSON.parse(error.message);
-      enqueueSnackbar(errorData.detail || "Failed to signup.", {
+      enqueueSnackbar(errorData.message || "Signup failed", {
         variant: "error",
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (e) {
-      // Fallback in case error is not in expected JSON format
-      enqueueSnackbar("Failed to signup", { variant: "error" });
+    } catch {
+      // Fallback error message
+      enqueueSnackbar("Network error. Please try again.", {
+        variant: "error",
+      });
     }
   };
 

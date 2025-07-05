@@ -5,18 +5,12 @@ import type { ValidationRule } from 'react-hook-form';
 import * as yup from 'yup';
 import type { FIELD_TYPE } from "../constants";
 
-export interface User {
-  id: string;
-  full_name: string;
-  email: string;
-  is_active: boolean;
-  roles: UserRole[];
-}
-
-export interface UserRole {
+ export interface User {
   id: string;
   name: string;
- }
+  email: string;
+  role: string;
+}
 
 export interface AuthState {
   accessToken: string | null;
@@ -128,33 +122,34 @@ export interface LoginFormType {
   password: string;
 }
 
-export interface LoginResponse {
-  access_token: string;
-}
-
 export interface SignupFormType {
   email: string;
   password: string;
-  full_name: string;
-  role: UserRoleEnum;
+  name: string;
+  role: string;
 }
 
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
-  roles: UserRoleEnum[];
-}
-
-export type SignupResponse = {
+export interface LoginResponse {
+  success: boolean;
   message: string;
-  user: {
-    id: string;
-    email: string;
-    full_name: string;
-    is_active: boolean;
-    roles: UserRole[];
+  data: {
+    user: User;
+    accessToken: string;
   };
-  token: TokenResponse;
-};
+}
 
+export interface SignupResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: User;
+    accessToken: string;
+  };
+}
 
+export interface JobDescriptionEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}

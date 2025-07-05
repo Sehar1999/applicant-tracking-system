@@ -13,7 +13,7 @@ export const loginSchema = yup.object({
 });
 
 export const signupSchema = yup.object({
-  full_name: yup.string().required('Full name is required'),
+  name: yup.string().required('Name is required'),
   email: yup
     .string()
     .matches(rEmail, 'Invalid email')

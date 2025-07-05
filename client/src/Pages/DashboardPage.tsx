@@ -1,3 +1,3 @@
-export const DashboardPage = () => {
-  return <div>DashboardPage</div>;
-};
+import { Dashboard } from "../components/Dashboard";
+
+export const DashboardPage = () => <Dashboard />;

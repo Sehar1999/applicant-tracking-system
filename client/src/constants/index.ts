@@ -1,4 +1,4 @@
-import type { FormField } from "../types";
+import { UserRoleEnum, type FormField } from "../types";
 
 export const AUTH_STORAGE = 'auth-storage';
 
@@ -66,7 +66,7 @@ export enum FIELD_TYPE {
 
 export const SIGN_UP_FIELDS: FormField[] = [
   {
-    name: 'full_name',
+    name: 'name',
     type: 'text',
     placeholder: 'Full Name',
     label: 'Full Name',
@@ -90,12 +90,12 @@ export const SIGN_UP_FIELDS: FormField[] = [
     label: 'Role',
     options: [
       {
-        label: 'Applicant',
-        value: 'applicant',
+        label: UserRoleEnum.APPLICANT,
+        value: UserRoleEnum.APPLICANT,
       },
       {
-        label: 'Recruiter',
-        value: 'recruiter',
+        label: UserRoleEnum.RECRUITER,
+        value: UserRoleEnum.RECRUITER,
       },
     ],
   },
@@ -117,13 +117,13 @@ export const LOGIN_FIELDS: FormField[] = [
 ];
 
 // TODO: Move this to env file before integration
-export const API_BASE_URL = 'http://localhost:3001/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 // API Endpoints
 export const endpoints = {
   auth: {
     login: '/auth/login',
-    register: '/auth/register',
+    register: '/auth/signup',
   },
 };
 

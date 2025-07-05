@@ -7,6 +7,8 @@ import { ResumesPage } from "../Pages/ResumesPage";
 import { Profile } from "../components/Profile";
 import { LoadingScreen } from "../components/LoadingScreen/LoadingScreen";
 import { AuthProvider } from "../Provider/AuthProvider";
+import { RoleBasedGuard } from "../guard/RoleBasedGuard";
+import { UserRoleEnum } from "../types";
 
 export const dashboardRoutes: RouteObject[] = [
   {
@@ -22,7 +24,14 @@ export const dashboardRoutes: RouteObject[] = [
     ),
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: ROUTES.main.resumes, element: <ResumesPage /> },
+      {
+        path: ROUTES.main.resumes,
+        element: (
+          <RoleBasedGuard allowedRoles={[UserRoleEnum.RECRUITER]}>
+            <ResumesPage />
+          </RoleBasedGuard>
+        ),
+      },
       { path: ROUTES.main.profile, element: <Profile /> },
     ],
   },

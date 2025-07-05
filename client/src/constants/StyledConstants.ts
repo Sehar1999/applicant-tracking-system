@@ -82,3 +82,19 @@ export const secondaryButtonStyle = {
   minWidth: 'unset',
   outline: 'none',
 };
+
+export const toolbarStyles =(theme: Theme) => ({
+  display: "flex",
+  alignItems: "center",
+  padding: theme.spacing(1),
+  backgroundColor: theme.palette.background.paper,
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  flexWrap: "wrap",
+  gap: 0.5,
+})
+
+export const editorContainer = (theme: Theme) => ({
+  border: `1px solid ${theme.palette.divider}`,
+  borderRadius: theme.shape.borderRadius,
+  overflow: "hidden",
+})

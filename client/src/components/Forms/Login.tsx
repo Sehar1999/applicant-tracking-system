@@ -2,7 +2,7 @@ import { useSnackbar } from "notistack";
 import { LOGIN_FIELDS, ROUTES } from "../../constants";
 import { useRouter } from "../../hooks/useRouter";
 import { loginSchema } from "../../Schemas";
-import type { LoginFormType } from "../../types";
+import type { LoginFormType, LoginResponse } from "../../types";
 import { useAuthStore } from "../../zustand/auth/store";
 import { AuthFormContainer } from "./AuthFormContainer";
 import { useLogin } from "../../service.ts";
@@ -13,30 +13,39 @@ export const LogIn = () => {
   const { mutate, isPending } = useLogin();
   const { enqueueSnackbar } = useSnackbar();
 
-  const onSuccess = ({ access_token }: { access_token: string }) => {
-    setAuth(access_token);
-    replace(ROUTES.main.dashboard);
+  const onSuccess = (response: LoginResponse) => {
+    const { success, message, data } = response ?? {};
+    if (success) {
+      const { accessToken, user } = data ?? {};
+      setAuth(accessToken, user);
+      enqueueSnackbar(message || "Login successful!", {
+        variant: "success",
+      });
+      replace(ROUTES.main.dashboard);
+    } else {
+      enqueueSnackbar(message || "Login failed", {
+        variant: "error",
+      });
+    }
   };
 
   const onError = (error: Error) => {
     try {
-      // Parse the error message which is a JSON string
+      // Try to parse the error response
       const errorData = JSON.parse(error.message);
-      enqueueSnackbar(errorData.detail || "Failed to signup.", {
+      enqueueSnackbar(errorData.message || "Login failed", {
         variant: "error",
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (e) {
-      // Fallback in case error is not in expected JSON format
-      enqueueSnackbar("Failed to login", { variant: "error" });
+    } catch {
+      // Fallback error message
+      enqueueSnackbar("Network error. Please try again.", {
+        variant: "error",
+      });
     }
   };
 
   const handleSubmit = async ({ email, password }: LoginFormType) => {
-    const formData = new FormData();
-    formData.append("username", email);
-    formData.append("password", password);
-    mutate(formData, { onSuccess, onError });
+    mutate({ email, password }, { onSuccess, onError });
   };
 
   const {
