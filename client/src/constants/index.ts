@@ -125,6 +125,9 @@ export const endpoints = {
     login: '/auth/login',
     register: '/auth/signup',
   },
+  files: {
+    compare: '/files/compare',
+  }
 };
 
 // Query Keys

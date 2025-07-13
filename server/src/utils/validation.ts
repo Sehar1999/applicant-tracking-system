@@ -46,4 +46,13 @@ export const validateFileType = (mimetype: string): boolean => {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ];
   return allowedTypes.includes(mimetype);
+};
+
+export const validateParsableFileType = (mimetype: string): boolean => {
+  const parsableTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ];
+  return parsableTypes.includes(mimetype);
 }; 

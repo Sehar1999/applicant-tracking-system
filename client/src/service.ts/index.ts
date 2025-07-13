@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { endpoints } from "../constants";
+import type { FileComparisonResponse, LoginFormType, LoginResponse, SignupFormType, SignupResponse } from "../types";
 import { api } from "./fetcher";
-import type { LoginFormType, LoginResponse, SignupFormType, SignupResponse } from "../types";
 
 export const useLogin = () =>
   useMutation({
@@ -15,5 +15,12 @@ export const useSignup = () =>
   useMutation({
     mutationFn: async (data: SignupFormType) => {
       return api.post<SignupResponse>(endpoints.auth.register, data);
+    },
+  });
+
+export const useCompareFiles = () =>
+  useMutation({
+    mutationFn: async (data: FormData) => {
+      return api.post<FileComparisonResponse>(endpoints.files.compare, data);
     },
   });

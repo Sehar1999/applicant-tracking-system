@@ -2,10 +2,14 @@ import { Box, Container, Typography, Button } from "@mui/material";
 import { useState } from "react";
 import DocumentUpload from "./DocumentUpload";
 import JobDescriptionEditor from "./JobDescriptionEditor";
+import { useCompareFiles } from "../service.ts";
+import { enqueueSnackbar } from "notistack";
 
 export const Dashboard = () => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [jobDescription, setJobDescription] = useState<string>("");
+
+  const { mutate, isPending } = useCompareFiles();
 
   const handleFilesChange = (files: File[]) => {
     setUploadedFiles(files);
@@ -16,8 +20,21 @@ export const Dashboard = () => {
   };
 
   const handleCompare = () => {
-    console.log("uploaded files >>>uploaded files >>> ", uploadedFiles);
-    console.log("job description  >>> ", jobDescription);
+    const payload = new FormData();
+    payload.append("jobDescription", jobDescription);
+    uploadedFiles.forEach((file) => {
+      payload.append("files", file);
+    });
+
+    mutate(payload, {
+      onSuccess: (data) => {
+        console.log("data >>> ", data);
+      },
+      onError: (error) => {
+        console.error(error);
+        enqueueSnackbar("Error comparing files", { variant: "error" });
+      },
+    });
   };
 
   return (
@@ -47,7 +64,7 @@ export const Dashboard = () => {
           variant="contained"
           color="primary"
           size="large"
-          disabled={!uploadedFiles?.length || !jobDescription}
+          disabled={!uploadedFiles?.length || !jobDescription || isPending}
           onClick={handleCompare}
         >
           Compare
@@ -67,6 +84,7 @@ export const Dashboard = () => {
             files={uploadedFiles}
             onFilesChange={handleFilesChange}
             maxFiles={5}
+            disabled={isPending}
           />
         </Box>
 
@@ -75,7 +93,7 @@ export const Dashboard = () => {
             value={jobDescription}
             onChange={handleJobDescriptionChange}
             placeholder="Enter a detailed job description..."
-            // onGetPlainText={setPlainTextDescription}
+            disabled={isPending}
           />
         </Box>
       </Box>

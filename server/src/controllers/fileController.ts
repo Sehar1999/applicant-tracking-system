@@ -3,7 +3,13 @@ import { Request, Response } from 'express';
 import https from 'https';
 import multer from 'multer';
 import { Attachment, User } from '../models';
-import { validateFileType } from '../utils/validation';
+import { validateFileType, validateParsableFileType } from '../utils/validation';
+import { SuccessfulFile, FailedFile, FileComparisonResponse } from '../types';
+import { compareCVWithJD } from '../utils/openai';
+
+// File parsing libraries (using require for better compatibility)
+const pdf = require('pdf-parse');
+const mammoth = require('mammoth');
 
 // Configure Cloudinary
 cloudinary.config({
@@ -284,6 +290,175 @@ export const fetchFile = async (req: AuthRequest, res: Response): Promise<void> 
     res.status(500).json({
       success: false,
       message: 'Failed to fetch file'
+    });
+  }
+};
+
+// Helper function to parse file content
+const parseFileContent = async (file: Express.Multer.File): Promise<string> => {
+  try {
+    const buffer = file.buffer;
+    const mimetype = file.mimetype;
+
+    if (mimetype === 'application/pdf') {
+      // For PDF files
+      const data = await pdf(buffer);
+      return data.text;
+    } else if (mimetype.includes('word') || mimetype.includes('docx') || mimetype.includes('doc')) {
+      // For Word documents
+      const result = await mammoth.extractRawText({ buffer });
+      return result.value;
+    } else {
+      throw new Error(`Unsupported file type: ${mimetype}`);
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to parse file ${file.originalname}: ${errorMessage}`);
+  }
+};
+
+export const compareFiles = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+      return;
+    }
+
+    console.log("req.body >>> ", req.body);
+    console.log("req.files >>> ", req.files);
+
+    if (!req.files || req.files.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'No files provided'
+      });
+      return;
+    }
+
+    if(req.files && (req.files as Express.Multer.File[]).length > 5) {
+      res.status(400).json({
+        success: false,
+        message: 'You can only upload up to 5 files'
+      });
+      return;
+    }
+
+    const { jobDescription } = req.body;
+    
+    if (!jobDescription) {
+      res.status(400).json({
+        success: false,
+        message: 'Job description is required'
+      });
+      return;
+    }
+
+    const files = req.files as Express.Multer.File[];
+    
+    // Validate file types for parsing
+    for (const file of files) {
+      if (!validateParsableFileType(file.mimetype)) {
+        res.status(400).json({
+          success: false,
+          message: `File ${file.originalname} is not supported. Only PDF and Word documents are allowed.`
+        });
+        return;
+      }
+    }
+
+    // Process all files in parallel
+    const processPromises = files.map(async (file, index) => {
+      try {
+        // Upload to Cloudinary
+        const { url: fileUrl, publicId } = await uploadToCloudinary(file, req.user!.id);
+
+        // Save to database
+        const attachment = await Attachment.create({
+          fileUrl,
+          fileType: 'cv',
+          attachableId: req.user!.id,
+          attachableType: 'User',
+          uploadedAt: new Date()
+        });
+
+        // Parse file content
+        const fileContent = await parseFileContent(file);
+
+        // OpenAI comparison - parallel processing
+        const comparisonResult = await compareCVWithJD(fileContent, jobDescription);
+        console.log("comparisonResult >>>>>>>>>>>>>>>>>>>>> ", comparisonResult);
+        
+        return {
+          success: true,
+          data: {
+            id: attachment.id,
+            fileName: file.originalname,
+            fileUrl: attachment.fileUrl,
+            score: comparisonResult.score,
+            feedback: comparisonResult.feedback
+          }
+        };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          success: false,
+          fileName: file.originalname,
+          error: errorMessage
+        };
+      }
+    });
+
+    const results = await Promise.allSettled(processPromises);
+    
+    // Separate successful and failed results
+    const successfulFiles: SuccessfulFile[] = [];
+    const failedFiles: FailedFile[] = [];
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        const fileResult = result.value;
+        if (fileResult.success && fileResult.data) {
+          successfulFiles.push(fileResult.data);
+        } else {
+          failedFiles.push({
+            fileName: fileResult.fileName || files[index].originalname,
+            error: fileResult.error || 'Unknown error'
+          });
+        }
+      } else {
+        failedFiles.push({
+          fileName: files[index].originalname,
+          error: result.reason?.message || 'Unknown error'
+        });
+      }
+    });
+
+    // Console log the job description
+    console.log(`Job Description: ${jobDescription}`);
+    console.log('---');
+
+    const comparisonResponse: FileComparisonResponse = {
+      success: true,
+      message: 'Job is done',
+      data: {
+        filesProcessed: successfulFiles.length,
+        totalFiles: files.length,
+        successfulFiles,
+        failedFiles,
+        jobDescription
+      }
+    }
+    res.json(comparisonResponse);
+
+  } catch (error) {
+    console.error('File comparison error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'File comparison failed';
+    res.status(500).json({
+      success: false,
+      message: errorMessage
     });
   }
 };

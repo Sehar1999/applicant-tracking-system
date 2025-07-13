@@ -153,3 +153,41 @@ export interface JobDescriptionEditorProps {
   placeholder?: string;
   disabled?: boolean;
 }
+
+export interface CompareFilesFormType {
+  jobDescription: string;
+  files: File[];
+}
+
+// File comparison types
+export interface SuccessfulFile {
+  id: number;
+  fileName: string;
+  fileUrl: string;
+}
+
+export interface FailedFile {
+  fileName: string;
+  error: string;
+}
+
+
+
+export interface FileComparisonResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    filesProcessed: number;
+    totalFiles: number;
+    successfulFiles: SuccessfulFile[];
+    failedFiles: FailedFile[];
+    jobDescription: string;
+  };
+} 
+
+
+export interface CompareFilesPayload{
+  jobDescription: string;
+  files: File[];
+  
+}
