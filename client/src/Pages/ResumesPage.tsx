@@ -1,3 +1,3 @@
-export const ResumesPage = () => {
-  return <div>ResumesPage</div>;
-};
+import { ResumeList } from "../components/Resume";
+
+export const ResumesPage = () => <ResumeList />;

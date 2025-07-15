@@ -2,8 +2,6 @@ import React from "react";
 import { useDropzone } from "react-dropzone";
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
   List,
   ListItem,
@@ -19,22 +17,23 @@ import {
   Delete,
   Description,
 } from "@mui/icons-material";
+import type { ControllerRenderProps, FieldValues } from "react-hook-form";
+import { dropzoneStyle } from "../../constants/StyledConstants";
 
 interface DocumentUploadProps {
-  files: File[];
-  onFilesChange: (files: File[]) => void;
+  field: ControllerRenderProps<FieldValues, string>;
   maxFiles?: number;
   disabled?: boolean;
 }
 
 const DocumentUpload: React.FC<DocumentUploadProps> = ({
-  files,
-  onFilesChange,
+  field,
   maxFiles = 5,
   disabled = false,
 }) => {
   const theme = useTheme();
   const maxSizeBytes = 50 * 1024 * 1024; // 50MB
+  const files = field.value || [];
 
   const {
     getRootProps,
@@ -55,14 +54,14 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
     onDrop: (acceptedFiles: File[]) => {
       const newFiles = [...files, ...acceptedFiles];
       if (newFiles.length <= maxFiles) {
-        onFilesChange(newFiles);
+        field.onChange(newFiles);
       }
     },
   });
 
   const removeFile = (index: number) => {
-    const newFiles = files.filter((_, i) => i !== index);
-    onFilesChange(newFiles);
+    const newFiles = files.filter((_: File, i: number) => i !== index);
+    field.onChange(newFiles);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -81,58 +80,63 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
     return <InsertDriveFile sx={{ color: theme.palette.primary.main }} />;
   };
 
-  const dropzoneStyle = {
-    border: `2px dashed ${
-      isDragReject
-        ? "#d32f2f"
-        : isDragActive
-        ? theme.palette.primary.main
-        : theme.palette.divider
-    }`,
-    borderRadius: theme.shape.borderRadius,
-    padding: theme.spacing(4),
-    textAlign: "center" as const,
-    cursor: disabled ? "not-allowed" : "pointer",
-    backgroundColor: isDragActive
-      ? `${theme.palette.primary.main}08`
-      : isDragReject
-      ? "#ffebee"
-      : theme.palette.background.default,
-    transition: "all 0.2s ease-in-out",
-    "&:hover": {
-      backgroundColor: disabled ? undefined : `${theme.palette.primary.main}04`,
-    },
-  };
-
   return (
-    <Card elevation={1} sx={{ height: "fit-content" }}>
-      <CardContent>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-          Document Upload
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 1,
+      }}
+    >
+      {/* Header */}
+      <Box
+        sx={{
+          p: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          bgcolor: "grey.50",
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          Upload PDF or DOCX files (max {maxFiles} file{maxFiles > 1 ? "s" : ""}
+          , 50MB each)
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Upload PDF or DOCX files (max {maxFiles} files, 50MB each)
-        </Typography>
+      </Box>
 
-        <Box {...getRootProps()} sx={dropzoneStyle}>
+      {/* Dropzone */}
+      <Box
+        sx={{
+          flex: 1,
+          p: 2,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Box
+          {...getRootProps()}
+          sx={dropzoneStyle(theme, isDragReject, isDragActive, disabled)}
+        >
           <input {...getInputProps()} />
           <CloudUpload
             sx={{
-              fontSize: 48,
+              fontSize: 40,
               color: isDragReject
                 ? "#d32f2f"
                 : isDragActive
                 ? theme.palette.primary.main
                 : theme.palette.text.secondary,
-              mb: 2,
+              mb: 1,
             }}
           />
-          <Typography variant="body1" sx={{ mb: 1 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
             {isDragActive
               ? "Drop files here..."
               : "Drag & drop files here, or click to browse"}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="caption" color="text.secondary">
             Supported formats: PDF, DOCX
           </Typography>
         </Box>
@@ -147,58 +151,70 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
           </Alert>
         )}
 
-        {files.length > 0 && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-              Uploaded Files ({files.length}/{maxFiles})
-            </Typography>
-            <List dense>
-              {files.map((file, index) => (
-                <ListItem
-                  key={`${file.name}-${index}`}
-                  sx={{
-                    bgcolor: theme.palette.background.paper,
-                    mb: 1,
-                    borderRadius: 1,
-                    border: `1px solid ${theme.palette.divider}`,
-                  }}
-                >
-                  <Box sx={{ mr: 2 }}>{getFileIcon(file.name)}</Box>
-                  <ListItemText
-                    primary={
-                      <Typography variant="body2" noWrap>
-                        {file.name}
-                      </Typography>
-                    }
-                    secondary={
-                      <Typography variant="caption" color="text.secondary">
-                        {formatFileSize(file.size)}
-                      </Typography>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      onClick={() => removeFile(index)}
-                      size="small"
-                      sx={{ color: theme.palette.error.main }}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        )}
-
         {files.length >= maxFiles && (
           <Alert severity="info" sx={{ mt: 2 }}>
             Maximum number of files reached ({maxFiles})
           </Alert>
         )}
-      </CardContent>
-    </Card>
+      </Box>
+
+      {/* File List */}
+      {files.length > 0 && (
+        <Box
+          sx={{
+            borderTop: "1px solid",
+            borderColor: "divider",
+            bgcolor: "grey.50",
+            maxHeight: "400px",
+            overflow: "auto",
+          }}
+        >
+          <Box sx={{ p: 1.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              Files ({files.length}/{maxFiles})
+            </Typography>
+          </Box>
+          <List dense sx={{ p: 0 }}>
+            {files.map((file: File, index: number) => (
+              <ListItem
+                key={`${file.name}-${index}`}
+                sx={{
+                  bgcolor: "white",
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                  "&:last-child": {
+                    borderBottom: "none",
+                  },
+                }}
+              >
+                <Box sx={{ mr: 1 }}>{getFileIcon(file.name)}</Box>
+                <ListItemText
+                  primary={
+                    <Typography variant="body2" noWrap>
+                      {file.name}
+                    </Typography>
+                  }
+                  secondary={
+                    <Typography variant="caption" color="text.secondary">
+                      {formatFileSize(file.size)}
+                    </Typography>
+                  }
+                />
+                <ListItemSecondaryAction>
+                  <IconButton
+                    edge="end"
+                    onClick={() => removeFile(index)}
+                    size="small"
+                    sx={{ color: theme.palette.error.main }}
+                  >
+                    <Delete />
+                  </IconButton>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
+    </Box>
   );
 };
 

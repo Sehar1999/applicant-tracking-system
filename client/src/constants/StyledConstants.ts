@@ -83,14 +83,26 @@ export const secondaryButtonStyle = {
   outline: 'none',
 };
 
-export const toolbarStyles =(theme: Theme) => ({
+export const toolbarStyles = (theme: Theme) => ({
   display: "flex",
   alignItems: "center",
   padding: theme.spacing(1),
   backgroundColor: theme.palette.background.paper,
   borderBottom: `1px solid ${theme.palette.divider}`,
-  flexWrap: "wrap",
-  gap: 0.5,
+  flexWrap: "nowrap",
+  gap: theme.spacing(0.5),
+  overflowX: "auto",
+  minHeight: "48px",
+  '&::-webkit-scrollbar': {
+    height: '4px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: theme.palette.divider,
+    borderRadius: '2px',
+  },
 })
 
 export const editorContainer = (theme: Theme) => ({
@@ -98,3 +110,28 @@ export const editorContainer = (theme: Theme) => ({
   borderRadius: theme.shape.borderRadius,
   overflow: "hidden",
 })
+
+export const dropzoneStyle = (theme: Theme, isDragReject: boolean, isDragActive: boolean, disabled: boolean) => ({
+    border: `2px dashed ${
+      isDragReject
+        ? "#d32f2f"
+        : isDragActive
+        ? theme.palette.primary.main
+        : theme.palette.divider
+    }`,
+    borderRadius: 1,
+    padding: theme.spacing(3),
+    textAlign: "center" as const,
+    cursor: disabled ? "not-allowed" : "pointer",
+    backgroundColor: isDragActive
+      ? `${theme.palette.primary.main}08`
+      : isDragReject
+      ? "#ffebee"
+      : "transparent",
+    transition: "all 0.2s ease-in-out",
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+  })

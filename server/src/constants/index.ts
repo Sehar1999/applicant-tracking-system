@@ -22,7 +22,7 @@ Please respond in the following JSON format only:
 
 export const OPENAI_MODEL = "gpt-3.5-turbo"
 
-export const MAX_TOKENS = 1000;
+export const MAX_TOKENS = 2000;
 
 export const TEMPERATURE = 0.3;
 

@@ -1,11 +1,13 @@
+import axios from 'axios';
 import { v2 as cloudinary } from 'cloudinary';
 import { Request, Response } from 'express';
-import https from 'https';
 import multer from 'multer';
+import path from 'path';
 import { Attachment, User } from '../models';
-import { validateFileType, validateParsableFileType } from '../utils/validation';
-import { SuccessfulFile, FailedFile, FileComparisonResponse } from '../types';
+import { FailedFile, FileComparisonResponse, SuccessfulFile } from '../types';
 import { compareCVWithJD } from '../utils/openai';
+import { validateFileType, validateParsableFileType } from '../utils/validation';
+
 
 // File parsing libraries (using require for better compatibility)
 const pdf = require('pdf-parse');
@@ -75,6 +77,8 @@ const deleteFromCloudinary = async (publicId: string): Promise<void> => {
     });
   });
 };
+
+
 
 export const uploadFile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -260,30 +264,54 @@ export const fetchFile = async (req: AuthRequest, res: Response): Promise<void> 
       return;
     }
 
-    // Fetch file from Cloudinary and stream it back
-    https.get(attachment.fileUrl, (response) => {
-      if (response.statusCode !== 200) {
+    try {
+      // Fetch file from Cloudinary using axios for better error handling
+      const response = await axios({
+        method: 'GET',
+        url: attachment.fileUrl,
+        responseType: 'stream',
+        timeout: 30000, // 30 second timeout
+      });
+
+      console.log("Cloudinary response status:", response.status);
+
+      // Extract filename from URL or use a default
+      const urlParts = attachment.fileUrl.split('/');
+      const fileNameWithExtension = urlParts[urlParts.length - 1];
+      const fileExt = path.extname(fileNameWithExtension).toLowerCase() || '.pdf';
+      const fileName = `${attachment.id}${fileExt}`;
+
+      // Set appropriate headers
+      res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
+      if (response.headers['content-length']) {
+        res.setHeader('Content-Length', response.headers['content-length']);
+      }
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+      // Pipe the response
+      response.data.pipe(res);
+
+    } catch (axiosError: any) {
+      console.error('Cloudinary fetch error:', axiosError.response?.status, axiosError.message);
+      
+      if (axiosError.response?.status === 401) {
+        res.status(404).json({
+          success: false,
+          message: 'File access denied - please check Cloudinary configuration'
+        });
+      } else if (axiosError.response?.status === 404) {
         res.status(404).json({
           success: false,
           message: 'File not found in storage'
         });
-        return;
+      } else {
+        res.status(500).json({
+          success: false,
+          message: 'Failed to fetch file from storage'
+        });
       }
-
-      // Set appropriate headers
-      res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
-      res.setHeader('Content-Length', response.headers['content-length'] || '0');
-      res.setHeader('Content-Disposition', `attachment; filename="${attachment.id}-file"`);
-
-      // Pipe the response
-      response.pipe(res);
-    }).on('error', (error) => {
-      console.error('File fetch error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch file'
-      });
-    });
+      return;
+    }
 
   } catch (error) {
     console.error('File fetch error:', error);
@@ -294,7 +322,6 @@ export const fetchFile = async (req: AuthRequest, res: Response): Promise<void> 
   }
 };
 
-// Helper function to parse file content
 const parseFileContent = async (file: Express.Multer.File): Promise<string> => {
   try {
     const buffer = file.buffer;

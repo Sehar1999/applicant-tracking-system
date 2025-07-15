@@ -1,34 +1,57 @@
-import { Box, Container, Typography, Button } from "@mui/material";
-import { useState } from "react";
-import DocumentUpload from "./DocumentUpload";
-import JobDescriptionEditor from "./JobDescriptionEditor";
-import { useCompareFiles } from "../service.ts";
+import { yupResolver } from "@hookform/resolvers/yup";
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
+import { FormProvider, useForm } from "react-hook-form";
 import { enqueueSnackbar } from "notistack";
+import { useState } from "react";
+import { createCompareFilesSchema } from "../Schemas";
+import { useCompareFiles } from "../service.ts";
+import { CustomController } from "./CustomController";
+import { useAuthStore } from "../zustand/auth/store";
+import { UserRoleEnum } from "../types";
+import ComparisonResults from "./ComparisonResults/ComparisonResults.tsx";
 
 export const Dashboard = () => {
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [jobDescription, setJobDescription] = useState<string>("");
+  const { user } = useAuthStore();
+  const userRole = user?.role;
+  const maxFiles = userRole === UserRoleEnum.RECRUITER ? 5 : 1;
 
+  const [comparisonResults, setComparisonResults] = useState<
+    import("../types").FileComparisonResponse | null
+  >(null);
+
+  const methods = useForm<{
+    jobDescription: string;
+    files: File[];
+  }>({
+    resolver: yupResolver(createCompareFilesSchema(userRole)),
+    defaultValues: {
+      jobDescription: "",
+      files: [],
+    },
+  });
+
+  const { handleSubmit, watch, reset } = methods;
   const { mutate, isPending } = useCompareFiles();
 
-  const handleFilesChange = (files: File[]) => {
-    setUploadedFiles(files);
-  };
-
-  const handleJobDescriptionChange = (value: string) => {
-    setJobDescription(value);
-  };
-
-  const handleCompare = () => {
+  const onSubmit = (data: { jobDescription: string; files: File[] }) => {
     const payload = new FormData();
-    payload.append("jobDescription", jobDescription);
-    uploadedFiles.forEach((file) => {
+    payload.append("jobDescription", data.jobDescription);
+    data.files.forEach((file: File) => {
       payload.append("files", file);
     });
 
     mutate(payload, {
-      onSuccess: (data) => {
+      onSuccess: (data: import("../types").FileComparisonResponse) => {
         console.log("data >>> ", data);
+        setComparisonResults(data);
+        enqueueSnackbar("Files compared successfully!", { variant: "success" });
       },
       onError: (error) => {
         console.error(error);
@@ -37,8 +60,16 @@ export const Dashboard = () => {
     });
   };
 
+  const handleNewComparison = () => {
+    setComparisonResults(null);
+    reset();
+  };
+
+  const { jobDescription, files } = watch();
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Header */}
       <Box
         sx={{
           mb: 4,
@@ -56,47 +87,91 @@ export const Dashboard = () => {
           >
             Dashboard
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Upload documents and create job descriptions
+          <Typography variant="body1" color="text.secondary" gutterBottom>
+            Upload documents and create job descriptions for comparison
           </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          color="primary"
-          size="large"
-          disabled={!uploadedFiles?.length || !jobDescription || isPending}
-          onClick={handleCompare}
-        >
-          Compare
-        </Button>
-      </Box>
-
-      <Box
-        sx={{
-          display: "flex",
-          gap: 3,
-          flexDirection: { xs: "column", md: "row" },
-          alignItems: "flex-start",
-        }}
-      >
-        <Box sx={{ flex: { xs: 1, md: "0 0 40%" } }}>
-          <DocumentUpload
-            files={uploadedFiles}
-            onFilesChange={handleFilesChange}
-            maxFiles={5}
-            disabled={isPending}
-          />
+          <Alert severity="info" sx={{ mt: 2, maxWidth: 450 }}>
+            {userRole === UserRoleEnum.RECRUITER
+              ? "Recruiters can upload up to 5 files"
+              : "Applicants can upload 1 file"}
+          </Alert>
         </Box>
 
-        <Box sx={{ flex: { xs: 1, md: "0 0 60%" } }}>
-          <JobDescriptionEditor
-            value={jobDescription}
-            onChange={handleJobDescriptionChange}
-            placeholder="Enter a detailed job description..."
-            disabled={isPending}
-          />
+        <Box sx={{ display: "flex", gap: 2 }}>
+          {comparisonResults ? (
+            <Button variant="outlined" onClick={handleNewComparison}>
+              New Comparison
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              disabled={isPending || !jobDescription || !files.length}
+              onClick={handleSubmit(onSubmit)}
+            >
+              Compare
+              {isPending && <CircularProgress size={20} sx={{ ml: 1 }} />}
+            </Button>
+          )}
         </Box>
       </Box>
+
+      {!comparisonResults ? (
+        <FormProvider {...methods}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 3,
+              flexDirection: "column",
+            }}
+          >
+            {/* Job Description - 65% */}
+            <Box
+              sx={{
+                flex: { xs: 1, lg: "0 0 65%" },
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Typography variant="h6" gutterBottom>
+                Job Description
+              </Typography>
+              <Box sx={{ flex: 1 }}>
+                <CustomController
+                  controllerName="jobDescription"
+                  controllerLabel=""
+                  fieldType="jobDescription"
+                  placeholderString="Enter job description..."
+                  isDisabled={isPending}
+                />
+              </Box>
+            </Box>
+
+            {/* Document Upload - 35% */}
+            <Box
+              sx={{
+                flex: { xs: 1, lg: "0 0 35%" },
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Typography variant="h6" gutterBottom>
+                Document Upload
+              </Typography>
+              <Box sx={{ flex: 1 }}>
+                <CustomController
+                  controllerName="files"
+                  controllerLabel=""
+                  fieldType="documentUpload"
+                  maxFiles={maxFiles}
+                  isDisabled={isPending}
+                />
+              </Box>
+            </Box>
+          </Box>
+        </FormProvider>
+      ) : (
+        <ComparisonResults results={comparisonResults} />
+      )}
     </Container>
   );
 };

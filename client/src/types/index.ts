@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ButtonProps } from "@mui/material";
 import type { FocusEventHandler, ReactNode, RefObject } from 'react';
-import type { ValidationRule } from 'react-hook-form';
+import type { ControllerRenderProps, FieldValues, ValidationRule } from 'react-hook-form';
 import * as yup from 'yup';
 import type { FIELD_TYPE } from "../constants";
 
@@ -103,6 +103,7 @@ export interface CustomControlProps extends ControlLabelProps {
   direction?: boolean;
   autoComplete?: string | undefined;
   isPortal?: boolean;
+  maxFiles?: number;
 }
 
 export interface IShowPasswordProps {
@@ -148,8 +149,7 @@ export interface SignupResponse {
 }
 
 export interface JobDescriptionEditorProps {
-  value: string;
-  onChange: (value: string) => void;
+  field: ControllerRenderProps<FieldValues, string>;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -160,10 +160,22 @@ export interface CompareFilesFormType {
 }
 
 // File comparison types
+export interface CVFeedback {
+  skillsAlignment: string;
+  experienceRelevance: string;
+  educationFit: string;
+  overallStrengths: string;
+  areasForImprovement: string;
+}
+
+
+// File comparison types
 export interface SuccessfulFile {
   id: number;
   fileName: string;
   fileUrl: string;
+  score: number; // 0-100 percentage match
+  feedback: CVFeedback;
 }
 
 export interface FailedFile {
@@ -188,6 +200,21 @@ export interface FileComparisonResponse {
 
 export interface CompareFilesPayload{
   jobDescription: string;
-  files: File[];
-  
+  files: File[]; 
+}
+
+export interface Resume {
+  id: number;
+  fileUrl: string;
+  fileType: string;
+  attachableId: number;
+  attachableType: string;
+  uploadedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ResumeResponse {
+  success: boolean;
+  data: Resume[];
 }

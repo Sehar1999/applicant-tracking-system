@@ -127,6 +127,7 @@ export const endpoints = {
   },
   files: {
     compare: '/files/compare',
+    myFiles: '/files/my-files',
   }
 };
 

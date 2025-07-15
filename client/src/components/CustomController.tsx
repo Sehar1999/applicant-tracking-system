@@ -1,15 +1,11 @@
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import {
-  Autocomplete,
   Box,
-  Checkbox,
   FormControl,
   FormHelperText,
   FormLabel,
-  ListItem,
   MenuItem,
   Select,
-  Switch,
   TextField,
 } from "@mui/material";
 import { useState, type FC } from "react";
@@ -21,8 +17,9 @@ import {
 } from "react-hook-form";
 import { FIELD_TYPE } from "../constants";
 import type { CustomControlProps, PasswordType, SelectOptions } from "../types";
-import { transformSentence } from "../utils";
+import DocumentUpload from "./DocumentUpload";
 import { InfoTooltip } from "./InfoTooltip";
+import JobDescriptionEditor from "./JobDescriptionEditor";
 import { ShowPassword } from "./ShowPAssword";
 
 /**
@@ -47,7 +44,6 @@ export const CustomController: FC<CustomControlProps> = ({
   tooltipText,
   defaultValue,
   selectOptions,
-  canMultiSelect,
   controllerName,
   controllerLabel,
   placeholderString,
@@ -55,6 +51,7 @@ export const CustomController: FC<CustomControlProps> = ({
   isLockIcon,
   isContactInfo,
   autoComplete,
+  maxFiles,
 }) => {
   const { control } = useFormContext();
   const [passwordType, setPasswordType] = useState<PasswordType>(
@@ -87,16 +84,44 @@ export const CustomController: FC<CustomControlProps> = ({
     }
   };
 
-  const getCapitalizeAndRemoveHyphen = (text: string) => {
-    return text.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-  };
-
   const renderField = (
     field: ControllerRenderProps<FieldValues, string>,
     message: string | undefined,
     invalid: boolean
   ) => {
     switch (fieldType) {
+      case "jobDescription":
+        return (
+          <Box>
+            <JobDescriptionEditor
+              field={field}
+              placeholder={placeholderString}
+              disabled={isDisabled}
+            />
+            {invalid && message && (
+              <FormHelperText sx={{ color: "#d32f2f", mt: 1 }}>
+                {message}
+              </FormHelperText>
+            )}
+          </Box>
+        );
+
+      case "documentUpload":
+        return (
+          <Box>
+            <DocumentUpload
+              field={field}
+              maxFiles={maxFiles || 5}
+              disabled={isDisabled}
+            />
+            {invalid && message && (
+              <FormHelperText sx={{ color: "#d32f2f", mt: 1 }}>
+                {message}
+              </FormHelperText>
+            )}
+          </Box>
+        );
+
       case "select":
       case FIELD_TYPE.select:
         return (
@@ -126,128 +151,6 @@ export const CustomController: FC<CustomControlProps> = ({
           </Box>
         );
 
-      case "autocomplete":
-        return (
-          <>
-            <Autocomplete
-              {...field}
-              sx={{
-                margin: "8px 0 4px",
-                "& .MuiOutlinedInput-root": {
-                  padding: canMultiSelect
-                    ? "0px 30px 0 14px !important"
-                    : "0 14px !important",
-                  background: "white",
-                },
-              }}
-              multiple={canMultiSelect}
-              readOnly={readOnly}
-              disabled={isDisabled}
-              disableClearable={true}
-              options={fieldOptions}
-              isOptionEqualToValue={(option, value) =>
-                option?.value === value.value
-              }
-              renderOption={(props, option) => {
-                const { value, label } = option || {};
-                return (
-                  <ListItem {...props} key={value}>
-                    {getCapitalizeAndRemoveHyphen(label)}
-                  </ListItem>
-                );
-              }}
-              getOptionLabel={(option) => option?.name ?? option?.label}
-              value={field.value ?? defaultValue}
-              onChange={(_, newValue) => {
-                field.onChange(newValue);
-              }}
-              renderInput={(params) => {
-                return (
-                  <TextField
-                    error={invalid}
-                    {...params}
-                    placeholder={placeholderString}
-                    variant="outlined"
-                  />
-                );
-              }}
-            />
-
-            {invalid && message && (
-              <FormHelperText color="error">{message}</FormHelperText>
-            )}
-
-            {invalid && !message && (
-              <FormHelperText color="error">{`${field.name} is required`}</FormHelperText>
-            )}
-          </>
-        );
-
-      case "textarea":
-        return (
-          <Box>
-            <TextField
-              autoComplete={autoComplete}
-              margin="dense"
-              InputLabelProps={{
-                shrink: false,
-              }}
-              error={invalid}
-              label=""
-              defaultValue={defaultValue}
-              disabled={isDisabled}
-              placeholder={
-                transformSentence(controllerLabel) || placeholderString || ""
-              }
-              rows={rowsLength || 4}
-              fullWidth
-              {...field}
-              helperText={!isContactInfo ? message : ""}
-              multiline={true}
-              variant="outlined"
-              inputProps={{
-                maxLength: maxLength || undefined,
-                readOnly: readOnly ? true : false,
-                onBlur: blurOut,
-                style: {
-                  padding: "12.5px 2px",
-                  opacity: readOnly ? 0.5 : 1,
-                  cursor: readOnly ? "not-allowed" : "text",
-                },
-              }}
-              InputProps={
-                tooltipText
-                  ? {
-                      endAdornment: <InfoTooltip title={tooltipText} />,
-                    }
-                  : undefined
-              }
-            />
-          </Box>
-        );
-
-      case "boolean":
-        return (
-          <FormControl>
-            <Box display="flex" gap="10px" alignItems="center" mb={2}>
-              <Checkbox
-                checked={!!field.value}
-                sx={{ padding: 0 }}
-                onChange={(value) => {
-                  field.onChange(value);
-                }}
-                value={field.value}
-                name={controllerName}
-              />
-
-              <FormLabel sx={{ fontSize: "12px" }}>
-                {" "}
-                {controllerLabel}{" "}
-              </FormLabel>
-            </Box>
-          </FormControl>
-        );
-
       case "text":
       case "email":
       case "number":
@@ -268,9 +171,6 @@ export const CustomController: FC<CustomControlProps> = ({
               error={invalid}
               defaultValue={defaultValue}
               disabled={isDisabled}
-              // placeholder={
-              //   transformSentence(controllerLabel) || placeholderString || ""
-              // }
               rows={isMultiLine ? rowsLength : undefined}
               fullWidth
               {...field}
@@ -315,43 +215,6 @@ export const CustomController: FC<CustomControlProps> = ({
               }
             />
           </Box>
-        );
-
-      case "checkbox":
-      case FIELD_TYPE.checkbox:
-        return (
-          <FormControl>
-            <Box display="flex" gap="10px" alignItems="center" mb={2}>
-              <Checkbox
-                checked={!!field.value}
-                sx={{ padding: 0 }}
-                onChange={(value) => {
-                  field.onChange(value);
-                }}
-                value={field.value}
-                name={controllerName}
-              />
-
-              <FormLabel sx={{ fontSize: "12px" }}>
-                {" "}
-                {controllerLabel}{" "}
-              </FormLabel>
-            </Box>
-          </FormControl>
-        );
-
-      case "switch":
-      case FIELD_TYPE.switch:
-        return (
-          <Switch
-            {...field}
-            onChange={(value) => {
-              field.onChange(value);
-            }}
-            value={field.value}
-            name={controllerName}
-            checked={field.value}
-          />
         );
 
       default:

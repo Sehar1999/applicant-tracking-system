@@ -5,12 +5,14 @@ export const StyledEditorContainer = styled(Box)(({ theme }) => ({
   "& .ProseMirror": {
     outline: "none",
     minHeight: "200px",
+    maxHeight: "400px",
+    overflowY: "auto",
     padding: theme.spacing(2),
     fontFamily: theme.typography.body1.fontFamily,
     fontSize: theme.typography.body1.fontSize,
     lineHeight: 1.6,
     color: theme.palette.text.primary,
-    "& p.is-editor-empty:first-child::before": {
+    "& p.is-editor-empty:first-of-type::before": {
       content: "attr(data-placeholder)",
       float: "left",
       color: theme.palette.text.secondary,
@@ -35,20 +37,20 @@ export const StyledEditorContainer = styled(Box)(({ theme }) => ({
   },
 }));
 
-export const ToolbarButton = styled(IconButton)<{ active?: boolean }>(
-  ({ theme, active }) => ({
-    margin: theme.spacing(0.5),
-    padding: theme.spacing(0.5),
-    borderRadius: theme.shape.borderRadius,
-    color: active ? theme.palette.primary.main : theme.palette.text.primary,
-    backgroundColor: active ? `${theme.palette.primary.main}20` : "transparent",
-    "&:hover": {
-      backgroundColor: active
-        ? `${theme.palette.primary.main}30`
-        : theme.palette.action.hover,
-    },
-    "&.Mui-disabled": {
-      color: theme.palette.action.disabled,
-    },
-  })
-);
+export const ToolbarButton = styled(IconButton, {
+  shouldForwardProp: (prop) => prop !== "active",
+})<{ active?: boolean }>(({ theme, active }) => ({
+  margin: theme.spacing(0.5),
+  padding: theme.spacing(0.5),
+  borderRadius: theme.shape.borderRadius,
+  color: active ? theme.palette.primary.main : theme.palette.text.primary,
+  backgroundColor: active ? `${theme.palette.primary.main}20` : "transparent",
+  "&:hover": {
+    backgroundColor: active
+      ? `${theme.palette.primary.main}30`
+      : theme.palette.action.hover,
+  },
+  "&.Mui-disabled": {
+    color: theme.palette.action.disabled,
+  },
+}));

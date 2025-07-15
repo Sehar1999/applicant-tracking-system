@@ -1,4 +1,5 @@
 import * as yup from "yup";
+import { UserRoleEnum } from "../types";
 
 const rEmail =
   // eslint-disable-next-line no-useless-escape
@@ -47,3 +48,28 @@ export const signupSchema = yup.object({
     .required('Password is required'),
     role: yup.string().required('Role is required'),
 });
+
+// Function to create compareFilesSchema based on user role
+export const createCompareFilesSchema = (userRole?: string) => {
+  const maxFiles = userRole === UserRoleEnum.RECRUITER ? 5 : 1;
+    
+  return yup.object({
+    jobDescription: yup
+      .string()
+      .trim()
+      .min(10, 'Job description must be at least 10 characters')
+      .required('Job description is required'),
+    files: yup
+      .array()
+      .of(yup.mixed().required('File is required'))
+      .min(1, 'At least one file is required')
+      .max(maxFiles, `${userRole}s can upload maximum ${maxFiles} file${maxFiles > 1 ? 's' : ''}`)
+      .required('Files are required'),
+  }) as yup.ObjectSchema<{
+    jobDescription: string;
+    files: File[];
+  }>;
+};
+
+// Default schema (fallback)
+export const compareFilesSchema = createCompareFilesSchema();
