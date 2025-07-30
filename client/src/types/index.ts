@@ -10,6 +10,7 @@ import type { FIELD_TYPE } from "../constants";
   name: string;
   email: string;
   role: string;
+  profilePicture?: string;
 }
 
 export interface AuthState {
@@ -17,6 +18,7 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   setAuth: (accessToken: string, user?: User) => void;
+  updateUser: (userData: Partial<User>) => void;
   logout: () => void;
   loading: boolean;
 }
@@ -130,6 +132,17 @@ export interface SignupFormType {
   role: string;
 }
 
+export interface ProfileUpdateFormType {
+  name: string;
+  email: string;
+}
+
+export interface PasswordChangeFormType {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface LoginResponse {
   success: boolean;
   message: string;
@@ -145,6 +158,22 @@ export interface SignupResponse {
   data: {
     user: User;
     accessToken: string;
+  };
+}
+
+export interface ProfileUpdateResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: User;
+  };
+}
+
+export interface ProfilePictureResponse {
+  success: boolean;
+  message: string;
+  data: {
+    profilePicture: string;
   };
 }
 

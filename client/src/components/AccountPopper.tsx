@@ -10,12 +10,13 @@ import { CustomPopover, usePopover } from "./CustomPopper";
 import { useRouter } from "../hooks/useRouter";
 import { useAuthStore } from "../zustand/auth/store";
 import { AUTH_LINKS, PROFILE_POPOVER_OPTIONS } from "../constants";
+import { useMemo } from "react";
 
 export const AccountPopover = () => {
   const router = useRouter();
 
   const { logout, user } = useAuthStore();
-  const { full_name, email } = user || {};
+  const { name, email, profilePicture } = user || {};
   const popover = usePopover();
 
   const handleLogout = async () => {
@@ -33,6 +34,16 @@ export const AccountPopover = () => {
     router.push(path);
   };
 
+  const initials = useMemo(() => {
+    if (!name) return "";
+    const words = name.split(" ");
+    let initialLetters = "";
+    words?.map((word) => {
+      initialLetters += word.charAt(0).toUpperCase();
+    });
+    return initialLetters?.slice(0, 2);
+  }, [name]);
+
   return (
     <>
       <IconButton
@@ -47,25 +58,27 @@ export const AccountPopover = () => {
         }}
       >
         <Avatar
-          alt={full_name}
+          alt={name}
+          src={profilePicture || undefined}
           sx={{
-            width: 36,
-            height: 36,
+            width: 50,
+            height: 50,
             border: (theme) => `solid 2px ${theme.palette.background.default}`,
+            objectFit: "cover",
           }}
         >
-          {full_name?.charAt(0).toUpperCase()}
+          {(!profilePicture && initials) || "N/A"}
         </Avatar>
       </IconButton>
 
       <CustomPopover
         open={popover.open}
         onClose={popover.onClose}
-        sx={{ width: 200, p: 0 }}
+        sx={{ width: 200, p: 2 }}
       >
         <Box sx={{ p: 2, pb: 1.5 }}>
           <Typography variant="subtitle2" noWrap fontWeight="bold">
-            {full_name}
+            {name}
           </Typography>
 
           <Typography variant="body2" sx={{ color: "text.secondary" }} noWrap>

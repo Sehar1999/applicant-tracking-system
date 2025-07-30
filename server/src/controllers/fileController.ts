@@ -80,6 +80,103 @@ const deleteFromCloudinary = async (publicId: string): Promise<void> => {
 
 
 
+export const updateProfilePicture = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({
+        success: false,
+        message: 'No file provided'
+      });
+      return;
+    }
+
+    // Validate file type - only images allowed for profile pictures
+    if (!req.file.mimetype.startsWith('image/')) {
+      res.status(400).json({
+        success: false,
+        message: 'Only image files are allowed for profile pictures'
+      });
+      return;
+    }
+
+    // Find existing profile picture
+    const existingProfilePicture = await Attachment.findOne({
+      where: { 
+        attachableId: req.user.id, 
+        attachableType: 'User', 
+        fileType: 'profile' 
+      }
+    });
+
+    // Delete old image from Cloudinary if exists
+    if (existingProfilePicture) {
+      try {
+        // Extract public ID from Cloudinary URL
+        const urlParts = existingProfilePicture.fileUrl.split('/');
+        const fileNameWithExt = urlParts[urlParts.length - 1];
+        const publicId = `ats-app/users/${req.user.id}/${fileNameWithExt.split('.')[0]}`;
+        
+        await new Promise((resolve, reject) => {
+          cloudinary.uploader.destroy(publicId, (error, result) => {
+            if (error) {
+              console.error('Error deleting old profile picture from Cloudinary:', error);
+              // Don't fail the upload if deletion fails, just log it
+              resolve(result);
+            } else {
+              resolve(result);
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Error deleting old profile picture:', error);
+        // Continue with upload even if deletion fails
+      }
+    }
+
+    // Upload new image to Cloudinary
+    const { url: fileUrl } = await uploadToCloudinary(req.file, req.user.id);
+
+    // Update or create attachment record
+    if (existingProfilePicture) {
+      await existingProfilePicture.update({
+        fileUrl,
+        uploadedAt: new Date()
+      });
+    } else {
+      await Attachment.create({
+        fileUrl,
+        fileType: 'profile',
+        attachableId: req.user.id,
+        attachableType: 'User',
+        uploadedAt: new Date()
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile picture updated successfully',
+      data: {
+        profilePicture: fileUrl
+      }
+    });
+
+  } catch (error) {
+    console.error('Profile picture update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Profile picture update failed'
+    });
+  }
+};
+
 export const uploadFile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.user) {
@@ -153,7 +250,8 @@ export const getUserFiles = async (req: AuthRequest, res: Response): Promise<voi
     const attachments = await Attachment.findAll({
       where: {
         attachableId: req.user.id,
-        attachableType: 'User'
+        attachableType: 'User',
+        fileType: 'cv'
       },
       order: [['uploadedAt', 'DESC']]
     });
@@ -354,9 +452,6 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    console.log("req.body >>> ", req.body);
-    console.log("req.files >>> ", req.files);
-
     if (!req.files || req.files.length === 0) {
       res.status(400).json({
         success: false,
@@ -416,7 +511,6 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
 
         // OpenAI comparison - parallel processing
         const comparisonResult = await compareCVWithJD(fileContent, jobDescription);
-        console.log("comparisonResult >>>>>>>>>>>>>>>>>>>>> ", comparisonResult);
         
         return {
           success: true,

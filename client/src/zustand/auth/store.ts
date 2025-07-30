@@ -5,7 +5,7 @@ import { AUTH_STORAGE } from '../../constants';
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       accessToken: null,
       user: null,
       isAuthenticated: false,
@@ -16,6 +16,10 @@ export const useAuthStore = create<AuthState>()(
           user,
           isAuthenticated: true,
           loading: false,
+        }),
+      updateUser: (userData: Partial<User>) =>
+        set({
+          user: { ...get().user!, ...userData },
         }),
       logout: () =>
         set({

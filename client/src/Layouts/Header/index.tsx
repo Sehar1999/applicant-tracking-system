@@ -75,7 +75,7 @@ export const Header = ({ isAuth }: { isAuth?: boolean }) => {
             spacing={{ xs: 0.5, sm: 1 }}
           >
             {/* Navigation Links */}
-            <Box sx={{ display: "flex", gap: 2, mr: 2 }}>
+            <Box sx={{ display: "flex", gap: 2, mr: "1.5em !important" }}>
               {filteredNavItems.map((item) => (
                 <NavButton key={item.path} to={item.path} label={item.label} />
               ))}

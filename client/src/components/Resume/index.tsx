@@ -1,23 +1,22 @@
-import { useEffect, useState } from "react";
-import type { Resume, ResumeResponse } from "../../types";
-import { useGetResumes } from "../../service.ts";
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Skeleton,
-  IconButton,
-  Tooltip,
-  Chip,
-  Paper,
-} from "@mui/material";
 import {
   Description as FileIcon,
-  GetApp as DownloadIcon,
-  Visibility as ViewIcon,
   InsertDriveFile as GenericFileIcon,
+  Visibility as ViewIcon,
 } from "@mui/icons-material";
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  Paper,
+  Skeleton,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import { useGetResumes } from "../../service.ts";
+import type { Resume, ResumeResponse } from "../../types";
 
 const getFileIcon = (fileType: string) => {
   const type = fileType.toLowerCase();
@@ -103,11 +102,6 @@ export const ResumeList = () => {
     window.open(fileUrl, "_blank");
   };
 
-  const handleDownloadFile = (fileUrl: string) => {
-    // Simple approach - just open the Cloudinary URL directly
-    window.open(fileUrl, "_blank");
-  };
-
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
@@ -171,7 +165,7 @@ export const ResumeList = () => {
             <Card
               key={resume.id}
               sx={{
-                height: 200,
+                height: 150,
                 display: "flex",
                 flexDirection: "column",
                 transition: "all 0.2s ease-in-out",
@@ -190,21 +184,46 @@ export const ResumeList = () => {
                 }}
               >
                 <Box
-                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
                 >
-                  {getFileIcon(resume.fileType)}
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontWeight: 500,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      flex: 1,
-                    }}
-                  >
-                    {getFileNameFromUrl(resume.fileUrl)}
-                  </Typography>
+                  <Tooltip title={getFileNameFromUrl(resume.fileUrl)}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 1,
+                        width: "80%",
+                      }}
+                    >
+                      {getFileIcon(resume.fileUrl.split(".").pop() || "")}
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          fontWeight: 500,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          flex: 1,
+                        }}
+                      >
+                        {getFileNameFromUrl(resume.fileUrl)}
+                      </Typography>
+                    </Box>
+                  </Tooltip>
+
+                  <Tooltip title="View file">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleViewFile(resume.fileUrl)}
+                    >
+                      <ViewIcon fontSize="small" color="primary" />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
 
                 <Chip
@@ -217,50 +236,6 @@ export const ResumeList = () => {
                 <Typography variant="caption" color="text.secondary">
                   Uploaded: {formatDate(resume.uploadedAt)}
                 </Typography>
-
-                <Box
-                  sx={{
-                    mt: "auto",
-                    display: "flex",
-                    gap: 1,
-                  }}
-                >
-                  <Tooltip title="View file">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleViewFile(resume.fileUrl)}
-                      sx={{
-                        backgroundColor: "primary.light",
-                        color: "white",
-                        "&:hover": {
-                          backgroundColor: "primary.main",
-                        },
-                      }}
-                    >
-                      <ViewIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-
-                  <Tooltip title="Download file">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDownloadFile(resume.fileUrl)}
-                      sx={{
-                        backgroundColor: "success.light",
-                        color: "white",
-                        "&:hover": {
-                          backgroundColor: "success.main",
-                        },
-                        "&:disabled": {
-                          backgroundColor: "grey.300",
-                          color: "grey.500",
-                        },
-                      }}
-                    >
-                      <DownloadIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
               </CardContent>
             </Card>
           ))}

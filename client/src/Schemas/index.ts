@@ -73,3 +73,48 @@ export const createCompareFilesSchema = (userRole?: string) => {
 
 // Default schema (fallback)
 export const compareFilesSchema = createCompareFilesSchema();
+
+// Profile update schema (name and email only)
+export const profileUpdateSchema = yup.object({
+  name: yup.string().required('Name is required'),
+  email: yup
+    .string()
+    .matches(rEmail, 'Invalid email')
+    .required('Email is required'),
+});
+
+// Password change schema
+export const passwordChangeSchema = yup.object({
+  currentPassword: yup.string().required('Current password is required'),
+  newPassword: yup
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .test('password-requirements', 'Password must meet all requirements', function(value) {
+      if (!value) return false;
+      
+      const hasLowercase = /[a-z]/.test(value);
+      const hasUppercase = /[A-Z]/.test(value);
+      const hasDigit = /\d/.test(value);
+      const hasSpecialChar = /[@$!%*?&]/.test(value);
+      
+      if (!hasLowercase) {
+        return this.createError({ message: 'Password must contain at least one lowercase letter' });
+      }
+      if (!hasUppercase) {
+        return this.createError({ message: 'Password must contain at least one uppercase letter' });
+      }
+      if (!hasDigit) {
+        return this.createError({ message: 'Password must contain at least one digit' });
+      }
+      if (!hasSpecialChar) {
+        return this.createError({ message: 'Password must contain at least one special character (@$!%*?&)' });
+      }
+      
+      return true;
+    })
+    .required('New password is required'),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref('newPassword')], 'Passwords must match')
+    .required('Please confirm your new password'),
+});

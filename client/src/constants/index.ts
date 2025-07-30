@@ -43,10 +43,6 @@ export const PROFILE_POPOVER_OPTIONS = [
     label: 'Profile',
     linkTo: ROUTES.main.profile,
   },
-  {
-    label: 'Settings',
-    linkTo: '#',
-  },
 ];
 
 export const PASSWORD = 'password';
@@ -124,10 +120,12 @@ export const endpoints = {
   auth: {
     login: '/auth/login',
     register: '/auth/signup',
+    profile: '/auth/profile',
   },
   files: {
     compare: '/files/compare',
     myFiles: '/files/my-files',
+    profilePicture: '/files/profile-picture',
   }
 };
 

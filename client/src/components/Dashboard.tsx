@@ -14,7 +14,7 @@ import { createCompareFilesSchema } from "../Schemas";
 import { useCompareFiles } from "../service.ts";
 import { CustomController } from "./CustomController";
 import { useAuthStore } from "../zustand/auth/store";
-import { UserRoleEnum } from "../types";
+import { UserRoleEnum, type FileComparisonResponse } from "../types";
 import ComparisonResults from "./ComparisonResults/ComparisonResults.tsx";
 
 export const Dashboard = () => {
@@ -48,8 +48,7 @@ export const Dashboard = () => {
     });
 
     mutate(payload, {
-      onSuccess: (data: import("../types").FileComparisonResponse) => {
-        console.log("data >>> ", data);
+      onSuccess: (data: FileComparisonResponse) => {
         setComparisonResults(data);
         enqueueSnackbar("Files compared successfully!", { variant: "success" });
       },
