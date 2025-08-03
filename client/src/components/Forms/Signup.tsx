@@ -1,11 +1,11 @@
 import { useSnackbar } from "notistack";
 import { AUTH_LINKS, ROUTES, SIGN_UP_FIELDS } from "../../constants";
 import { useRouter } from "../../hooks/useRouter";
+import { signupSchema } from "../../Schemas/index.ts";
+import { useSignup } from "../../service.ts";
 import { type SignupFormType, type SignupResponse } from "../../types";
 import { useAuthStore } from "../../zustand/auth/store";
 import { AuthFormContainer } from "./AuthFormContainer";
-import { useSignup } from "../../service.ts";
-import { signupSchema } from "../../Schemas/index.ts";
 
 export const Signup = () => {
   const router = useRouter();
@@ -18,9 +18,12 @@ export const Signup = () => {
     if (success) {
       const { accessToken, user } = data ?? {};
       setAuth(accessToken, user);
-      enqueueSnackbar(message || "Account created successfully!", {
-        variant: "success",
-      });
+      enqueueSnackbar(
+        message || "🎉 Welcome aboard! Account created successfully!",
+        {
+          variant: "success",
+        }
+      );
       router.replace(ROUTES.main.dashboard);
     } else {
       enqueueSnackbar(message || "Signup failed", {
@@ -50,12 +53,12 @@ export const Signup = () => {
 
   return (
     <AuthFormContainer
-      title="Create Account"
-      subtitle="Sign up to get started"
+      title="Join the Revolution"
+      subtitle="Create your account and start transforming your hiring process"
       fields={SIGN_UP_FIELDS}
-      submitButtonText="Sign up"
+      submitButtonText="Create Account"
       secondaryButton={{
-        text: "Already have an account? Login",
+        text: "Already have an account? Sign in",
         link: AUTH_LINKS.SIGN_IN_LINK,
       }}
       onSubmit={handleSubmit}

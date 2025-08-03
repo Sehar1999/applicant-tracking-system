@@ -22,7 +22,12 @@ export const Header = ({ isAuth }: { isAuth?: boolean }) => {
   //   return true;
   // });
 
-  const filteredNavItems = role === UserRoleEnum.RECRUITER ? NAV_ITEMS : [];
+  if (isAuth) return null;
+
+  const filteredNavItems =
+    role === UserRoleEnum.RECRUITER
+      ? NAV_ITEMS
+      : NAV_ITEMS.filter((item) => item.path !== ROUTES.main.resumes);
 
   return (
     <AppBar

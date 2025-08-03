@@ -16,6 +16,7 @@ import {
   type FieldValues,
 } from "react-hook-form";
 import { FIELD_TYPE } from "../constants";
+import { enhancedInputFieldStyle } from "../constants/StyledConstants";
 import type { CustomControlProps, PasswordType, SelectOptions } from "../types";
 import DocumentUpload from "./DocumentUpload";
 import { InfoTooltip } from "./InfoTooltip";
@@ -128,7 +129,15 @@ export const CustomController: FC<CustomControlProps> = ({
           <Box>
             <Select
               fullWidth
-              sx={{ marginTop: "10px" }}
+              sx={{
+                ...enhancedInputFieldStyle,
+                "& .MuiOutlinedInput-root": {
+                  ...enhancedInputFieldStyle["& .MuiOutlinedInput-root"],
+                  "& .MuiSelect-select": {
+                    padding: "14px 16px",
+                  },
+                },
+              }}
               {...field}
               id={`select-${field.name}`}
               value={field.value || ""}
@@ -136,15 +145,43 @@ export const CustomController: FC<CustomControlProps> = ({
                 field.onChange(event.target.value);
               }}
               error={invalid}
+              displayEmpty
+              renderValue={(selected) => {
+                if (!selected) {
+                  return (
+                    <Box sx={{ color: "text.secondary" }}>
+                      {placeholderString}
+                    </Box>
+                  );
+                }
+                const option = fieldOptions.find(
+                  (opt) => opt.value === selected
+                );
+                return option?.label || selected;
+              }}
             >
               {fieldOptions.map((item) => (
-                <MenuItem key={item.value} value={item.value}>
+                <MenuItem
+                  key={item.value}
+                  value={item.value}
+                  sx={{
+                    "&:hover": {
+                      backgroundColor: "rgba(102, 126, 234, 0.1)",
+                    },
+                    "&.Mui-selected": {
+                      backgroundColor: "rgba(102, 126, 234, 0.2)",
+                      "&:hover": {
+                        backgroundColor: "rgba(102, 126, 234, 0.3)",
+                      },
+                    },
+                  }}
+                >
                   {item.label}
                 </MenuItem>
               ))}
             </Select>
             {invalid && message && (
-              <FormHelperText sx={{ color: "#d32f2f" }}>
+              <FormHelperText sx={{ color: "#d32f2f", mt: 1 }}>
                 {message}
               </FormHelperText>
             )}
@@ -164,7 +201,8 @@ export const CustomController: FC<CustomControlProps> = ({
             <TextField
               autoComplete={autoComplete}
               type={getInputType(fieldType)}
-              margin="dense"
+              placeholder={placeholderString}
+              sx={enhancedInputFieldStyle}
               InputLabelProps={{
                 shrink: false,
               }}
@@ -224,7 +262,19 @@ export const CustomController: FC<CustomControlProps> = ({
 
   return (
     <FormControl fullWidth>
-      <FormLabel>{controllerLabel}</FormLabel>
+      <FormLabel
+        sx={{
+          color: "text.primary",
+          fontWeight: 600,
+          fontSize: "0.95rem",
+          mb: 1,
+          "&.Mui-focused": {
+            color: "#667eea",
+          },
+        }}
+      >
+        {controllerLabel}
+      </FormLabel>
       <Controller
         name={controllerName}
         control={control}

@@ -2,10 +2,10 @@ import { useSnackbar } from "notistack";
 import { LOGIN_FIELDS, ROUTES } from "../../constants";
 import { useRouter } from "../../hooks/useRouter";
 import { loginSchema } from "../../Schemas";
+import { useLogin } from "../../service.ts";
 import type { LoginFormType, LoginResponse } from "../../types";
 import { useAuthStore } from "../../zustand/auth/store";
 import { AuthFormContainer } from "./AuthFormContainer";
-import { useLogin } from "../../service.ts";
 
 export const LogIn = () => {
   const { replace } = useRouter();
@@ -18,7 +18,7 @@ export const LogIn = () => {
     if (success) {
       const { accessToken, user } = data ?? {};
       setAuth(accessToken, user);
-      enqueueSnackbar(message || "Login successful!", {
+      enqueueSnackbar(message || "Welcome back! Login successful!", {
         variant: "success",
       });
       replace(ROUTES.main.dashboard);
@@ -54,12 +54,12 @@ export const LogIn = () => {
 
   return (
     <AuthFormContainer
-      title="Login"
-      subtitle="Login to your account"
+      title="Welcome Back"
+      subtitle="Sign in to your account and continue your journey"
       fields={LOGIN_FIELDS}
-      submitButtonText="Login"
+      submitButtonText="Sign In"
       secondaryButton={{
-        text: "Don't have an account? Sign up",
+        text: "Don't have an account? Create one",
         link: `${main}/${register}`,
       }}
       onSubmit={handleSubmit}
