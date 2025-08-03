@@ -79,6 +79,9 @@ const theme = createTheme({
           fontWeight: 600,
           boxShadow: 'none',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:focus': {
+            outline: 'none',
+          },
         },
         containedPrimary: {
           backgroundColor: '#2563eb',

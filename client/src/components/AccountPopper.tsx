@@ -55,6 +55,9 @@ export const AccountPopover = () => {
           ...(popover.open && {
             background: (theme) => theme.palette.primary.main,
           }),
+          "&:focus": {
+            outline: "none",
+          },
         }}
       >
         <Avatar
