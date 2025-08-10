@@ -5,8 +5,8 @@ import { NavButton } from "../../components/NavButtons";
 import { NAV_ITEMS, ROUTES } from "../../constants";
 import { headerStyle } from "../../constants/StyledConstants";
 import { useRouter } from "../../hooks/useRouter";
-import { UserRoleEnum } from "../../types";
 import { useAuthStore } from "../../zustand/auth/store";
+import { UserRoleEnum } from "../../types";
 
 export const Header = ({ isAuth }: { isAuth?: boolean }) => {
   const theme = useTheme();
@@ -14,20 +14,16 @@ export const Header = ({ isAuth }: { isAuth?: boolean }) => {
   const { user } = useAuthStore();
   const { role } = user ?? {};
 
-  // const filteredNavItems = NAV_ITEMS.filter((item) => {
-  //   // Only show resumes nav button to recruiters
-  //   if (item.path === ROUTES.main.resumes && role !== UserRoleEnum.RECRUITER) {
-  //     return false;
-  //   }
-  //   return true;
-  // });
-
   if (isAuth) return null;
 
-  const filteredNavItems =
-    role === UserRoleEnum.RECRUITER
-      ? NAV_ITEMS
-      : NAV_ITEMS.filter((item) => item.path !== ROUTES.main.resumes);
+  const filteredNavItems = NAV_ITEMS.filter((item) => {
+    // If no allowedRoles specified, show to all users
+    if (!item.allowedRoles || item.allowedRoles.length === 0) {
+      return true;
+    }
+    // Show only if user role is in allowedRoles
+    return role && item.allowedRoles.includes(role as UserRoleEnum);
+  });
 
   return (
     <AppBar

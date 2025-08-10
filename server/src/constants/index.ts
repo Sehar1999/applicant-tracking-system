@@ -1,3 +1,9 @@
+// User Role Constants
+export enum UserRole {
+  RECRUITER = 'Recruiter',
+  APPLICANT = 'Applicant',
+}
+
 export const INITIAL_COMPARISON_PROMPT = `You are an expert HR professional and recruitment specialist. Your task is to carefully analyze a CV against a job description and provide a structured and realistic evaluation.
 
 Your analysis must be tightly coupled with the specific **requirements and language in the job description**. Score should reflect how well the candidate’s profile aligns with the **actual needs of the role**, especially in terms of **domain relevance**.

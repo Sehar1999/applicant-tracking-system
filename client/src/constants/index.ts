@@ -1,4 +1,4 @@
-import { UserRoleEnum, type FormField } from "../types";
+import { UserRoleEnum, type FormField, type NavItem } from "../types";
 
 export const AUTH_STORAGE = 'auth-storage';
 
@@ -11,6 +11,7 @@ export const ROUTES = {
   main: {
     dashboard: '/',
     resumes: '/resumes',
+    jobs: '/jobs',
     profile: '/profile',
   },
   notFound: '*',
@@ -27,7 +28,7 @@ export const AUTH_LINKS = {
   UNAUTHORIZED: '/unauthorized',
 };
 
-export const NAV_ITEMS = [
+export const NAV_ITEMS: NavItem[] = [
   {
     label: 'Dashboard',
     path: ROUTES.main.dashboard,
@@ -35,6 +36,12 @@ export const NAV_ITEMS = [
   {
     label: 'Resumes',
     path: ROUTES.main.resumes,
+    allowedRoles: [UserRoleEnum.RECRUITER],
+  },
+  {
+    label: 'Jobs',
+    path: ROUTES.main.jobs,
+    allowedRoles: [UserRoleEnum.RECRUITER],
   },
 ];
 
@@ -126,6 +133,14 @@ export const endpoints = {
     compare: '/files/compare',
     myFiles: '/files/my-files',
     profilePicture: '/files/profile-picture',
+  },
+  jobs: {
+    base: '/jobs',
+    create: '/jobs',
+    getAll: '/jobs',
+    getById: '/jobs',
+    update: '/jobs',
+    delete: '/jobs',
   }
 };
 

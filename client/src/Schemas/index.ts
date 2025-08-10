@@ -56,9 +56,15 @@ export const createCompareFilesSchema = (userRole?: string) => {
   return yup.object({
     jobDescription: yup
       .string()
-      .trim()
-      .min(10, 'Job description must be at least 10 characters')
-      .required('Job description is required'),
+      .when('jobDescriptionId', {
+        is: (value: any) => !value, // If no jobDescriptionId provided
+        then: (schema) => schema
+          .trim()
+          .min(10, 'Job description must be at least 10 characters')
+          .required('Job description is required'),
+        otherwise: (schema) => schema.optional(), // If jobDescriptionId exists, jobDescription is optional
+      }),
+    jobDescriptionId: yup.number().optional(), // Optional field for existing JD ID
     files: yup
       .array()
       .of(yup.mixed().required('File is required'))
@@ -66,7 +72,8 @@ export const createCompareFilesSchema = (userRole?: string) => {
       .max(maxFiles, `${userRole}s can upload maximum ${maxFiles} file${maxFiles > 1 ? 's' : ''}`)
       .required('Files are required'),
   }) as yup.ObjectSchema<{
-    jobDescription: string;
+    jobDescription?: string;
+    jobDescriptionId?: number;
     files: File[];
   }>;
 };

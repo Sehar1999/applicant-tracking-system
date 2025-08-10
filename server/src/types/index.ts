@@ -42,6 +42,7 @@ export interface FileComparisonResponse {
     successfulFiles: SuccessfulFile[];
     failedFiles: FailedFile[];
     jobDescription: string;
+    jobDescriptionId?: number | null;
   };
 } 
 

@@ -4,6 +4,7 @@ import { ROUTES } from "../constants";
 import { MainLayout } from "../Layouts/main/MainLayout";
 import { DashboardPage } from "../Pages/DashboardPage";
 import { ResumesPage } from "../Pages/ResumesPage";
+import { JobsPage } from "../Pages/JobsPage";
 import { Profile } from "../components/Profile";
 import { LoadingScreen } from "../components/LoadingScreen/LoadingScreen";
 import { AuthProvider } from "../Provider/AuthProvider";
@@ -29,6 +30,14 @@ export const dashboardRoutes: RouteObject[] = [
         element: (
           <RoleBasedGuard allowedRoles={[UserRoleEnum.RECRUITER]}>
             <ResumesPage />
+          </RoleBasedGuard>
+        ),
+      },
+      {
+        path: ROUTES.main.jobs,
+        element: (
+          <RoleBasedGuard allowedRoles={[UserRoleEnum.RECRUITER]}>
+            <JobsPage />
           </RoleBasedGuard>
         ),
       },

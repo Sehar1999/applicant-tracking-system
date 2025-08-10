@@ -41,6 +41,12 @@ export interface NavButtonProps extends ButtonProps {
   label: string;
 }
 
+export interface NavItem {
+  label: string;
+  path: string;
+  allowedRoles?: UserRoleEnum[];
+}
+
 export interface FormField {
   name: string;
   type: 'text' | 'email' | 'password' | 'select';

@@ -3,10 +3,11 @@ import { v2 as cloudinary } from 'cloudinary';
 import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
-import { Attachment, User } from '../models';
+import { Attachment, User, JobDescription } from '../models';
 import { FailedFile, FileComparisonResponse, SuccessfulFile } from '../types';
 import { compareCVWithJD } from '../utils/openai';
 import { validateFileType, validateParsableFileType } from '../utils/validation';
+import { UserRole } from '../constants';
 
 
 // File parsing libraries (using require for better compatibility)
@@ -468,14 +469,62 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    const { jobDescription } = req.body;
+    const { jobDescription, jobDescriptionId } = req.body;
     
-    if (!jobDescription) {
+    // Validation: Must have either jobDescription OR jobDescriptionId
+    if (!jobDescription && !jobDescriptionId) {
       res.status(400).json({
         success: false,
-        message: 'Job description is required'
+        message: 'Either jobDescription or jobDescriptionId is required'
       });
       return;
+    }
+
+    let actualJobDescription: string;
+    let savedJobDescriptionId: number | null = null;
+
+    if (jobDescriptionId) {
+      // Scenario 2: Use existing JD (only for recruiters)
+      if (req.user.role?.name !== UserRole.RECRUITER) {
+        res.status(403).json({
+          success: false,
+          message: 'Only recruiters can use saved job descriptions'
+        });
+        return;
+      }
+
+      const existingJD = await JobDescription.findOne({
+        where: { id: parseInt(jobDescriptionId), userId: req.user.id }
+      });
+
+      if (!existingJD) {
+        res.status(404).json({
+          success: false,
+          message: 'Job description not found'
+        });
+        return;
+      }
+
+      actualJobDescription = existingJD.description;
+      savedJobDescriptionId = existingJD.id;
+
+    } else {
+      // Scenario 1: New JD content
+      actualJobDescription = jobDescription;
+
+      // Save new JD only if user is Recruiter
+      if (req.user.role?.name === UserRole.RECRUITER) {
+        try {
+          const newJD = await JobDescription.create({
+            description: jobDescription,
+            userId: req.user.id
+          });
+          savedJobDescriptionId = newJD.id;
+        } catch (error) {
+          console.error('Error saving job description:', error);
+          // Continue with comparison even if JD saving fails
+        }
+      }
     }
 
     const files = req.files as Express.Multer.File[];
@@ -510,7 +559,7 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
         const fileContent = await parseFileContent(file);
 
         // OpenAI comparison - parallel processing
-        const comparisonResult = await compareCVWithJD(fileContent, jobDescription);
+        const comparisonResult = await compareCVWithJD(fileContent, actualJobDescription);
         
         return {
           success: true,
@@ -558,7 +607,7 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
     });
 
     // Console log the job description
-    console.log(`Job Description: ${jobDescription}`);
+    console.log(`Job Description: ${actualJobDescription}`);
     console.log('---');
 
     const comparisonResponse: FileComparisonResponse = {
@@ -569,7 +618,8 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
         totalFiles: files.length,
         successfulFiles,
         failedFiles,
-        jobDescription
+        jobDescription: actualJobDescription,
+        jobDescriptionId: savedJobDescriptionId
       }
     }
     res.json(comparisonResponse);

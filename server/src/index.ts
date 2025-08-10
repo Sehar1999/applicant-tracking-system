@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { sequelize } from './models';
 import authRoutes from './routes/auth';
 import fileRoutes from './routes/files';
+import jobRoutes from './routes/jobs';
 import errorHandler from './middlewares/errorHandler';
 
 dotenv.config();
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/jobs', jobRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
