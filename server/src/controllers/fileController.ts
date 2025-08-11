@@ -453,24 +453,33 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    if (!req.files || req.files.length === 0) {
-      res.status(400).json({
-        success: false,
-        message: 'No files provided'
-      });
-      return;
-    }
-
-    if(req.files && (req.files as Express.Multer.File[]).length > 5) {
-      res.status(400).json({
-        success: false,
-        message: 'You can only upload up to 5 files'
-      });
-      return;
-    }
-
-    const { jobDescription, jobDescriptionId } = req.body;
+    const { jobDescription, jobDescriptionId, fileIds } = req.body;
+    const newFiles = req.files as Express.Multer.File[] || [];
     
+    // Parse fileIds if it's a string (from FormData)
+    const parsedFileIds = fileIds ? (Array.isArray(fileIds) ? fileIds : fileIds.split(',').filter(Boolean)) : [];
+    
+    // Validation: Must have either fileIds OR new files, and at least one file total
+    if (parsedFileIds.length === 0 && newFiles.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'At least one file is required (either existing or new)'
+      });
+      return;
+    }
+
+    // Check total file count limit (5 for recruiters, 1 for applicants)
+    const totalFiles = parsedFileIds.length + newFiles.length;
+    const maxFiles = req.user.role?.name === UserRole.RECRUITER ? 5 : 1;
+    
+    if (totalFiles > maxFiles) {
+      res.status(400).json({
+        success: false,
+        message: `You can only process up to ${maxFiles} file${maxFiles > 1 ? 's' : ''}`
+      });
+      return;
+    }
+
     // Validation: Must have either jobDescription OR jobDescriptionId
     if (!jobDescription && !jobDescriptionId) {
       res.status(400).json({
@@ -527,10 +536,8 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    const files = req.files as Express.Multer.File[];
-    
-    // Validate file types for parsing
-    for (const file of files) {
+    // Validate new file types for parsing
+    for (const file of newFiles) {
       if (!validateParsableFileType(file.mimetype)) {
         res.status(400).json({
           success: false,
@@ -540,8 +547,76 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    // Process all files in parallel
-    const processPromises = files.map(async (file, index) => {
+    // Process existing files (by fileIds)
+    const existingFilePromises = parsedFileIds.map(async (fileId: string) => {
+      try {
+        const attachment = await Attachment.findOne({
+          where: {
+            id: parseInt(fileId),
+            attachableId: req.user!.id,
+            attachableType: 'User',
+            fileType: 'cv'
+          }
+        });
+
+        if (!attachment) {
+          return {
+            success: false,
+            fileName: `File ID: ${fileId}`,
+            error: 'File not found or access denied'
+          };
+        }
+
+        // Download file from Cloudinary
+        const response = await axios({
+          method: 'GET',
+          url: attachment.fileUrl,
+          responseType: 'arraybuffer',
+          timeout: 30000,
+        });
+
+        // Create a mock file object for parsing
+        const mockFile: Express.Multer.File = {
+          buffer: Buffer.from(response.data),
+          originalname: attachment.fileUrl.split('/').pop() || 'unknown.pdf',
+          mimetype: response.headers['content-type'] || 'application/pdf',
+          fieldname: 'file',
+          encoding: '7bit',
+          size: response.data.length,
+          destination: '',
+          filename: '',
+          path: '',
+          stream: require('stream').Readable.from(Buffer.from(response.data))
+        };
+
+        // Parse file content
+        const fileContent = await parseFileContent(mockFile);
+
+        // OpenAI comparison
+        const comparisonResult = await compareCVWithJD(fileContent, actualJobDescription);
+        
+        return {
+          success: true,
+          data: {
+            id: attachment.id,
+            fileName: attachment.fileUrl.split('/').pop() || 'unknown.pdf',
+            fileUrl: attachment.fileUrl,
+            score: comparisonResult.score,
+            feedback: comparisonResult.feedback
+          }
+        };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return {
+          success: false,
+          fileName: `File ID: ${fileId}`,
+          error: errorMessage
+        };
+      }
+    });
+
+    // Process new files
+    const newFilePromises = newFiles.map(async (file, index) => {
       try {
         // Upload to Cloudinary
         const { url: fileUrl, publicId } = await uploadToCloudinary(file, req.user!.id);
@@ -581,26 +656,28 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
       }
     });
 
-    const results = await Promise.allSettled(processPromises);
+    // Process all files in parallel
+    const allPromises = [...existingFilePromises, ...newFilePromises];
+    const results = await Promise.allSettled(allPromises);
     
     // Separate successful and failed results
     const successfulFiles: SuccessfulFile[] = [];
     const failedFiles: FailedFile[] = [];
 
-    results.forEach((result, index) => {
+    results.forEach((result) => {
       if (result.status === 'fulfilled') {
         const fileResult = result.value;
         if (fileResult.success && fileResult.data) {
           successfulFiles.push(fileResult.data);
         } else {
           failedFiles.push({
-            fileName: fileResult.fileName || files[index].originalname,
+            fileName: fileResult.fileName,
             error: fileResult.error || 'Unknown error'
           });
         }
       } else {
         failedFiles.push({
-          fileName: files[index].originalname,
+          fileName: 'Unknown file',
           error: result.reason?.message || 'Unknown error'
         });
       }
@@ -615,7 +692,7 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
       message: 'Job is done',
       data: {
         filesProcessed: successfulFiles.length,
-        totalFiles: files.length,
+        totalFiles: totalFiles,
         successfulFiles,
         failedFiles,
         jobDescription: actualJobDescription,

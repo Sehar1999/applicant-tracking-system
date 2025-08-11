@@ -190,8 +190,23 @@ export interface JobDescriptionEditorProps {
 }
 
 export interface CompareFilesFormType {
-  jobDescription: string;
+  jobDescription?: string;
+  jobDescriptionId?: number;
+  fileIds?: number[];
   files: File[];
+}
+
+export interface FileSelectionItem {
+  id: number;
+  fileName: string;
+  fileUrl: string;
+  uploadedAt: string;
+  fileType: string;
+}
+
+export interface FileSelectionResponse {
+  success: boolean;
+  data: FileSelectionItem[];
 }
 
 // File comparison types

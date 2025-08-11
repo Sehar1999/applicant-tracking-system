@@ -65,16 +65,35 @@ export const createCompareFilesSchema = (userRole?: string) => {
         otherwise: (schema) => schema.optional(), // If jobDescriptionId exists, jobDescription is optional
       }),
     jobDescriptionId: yup.number().optional(), // Optional field for existing JD ID
+    fileIds: yup
+      .array()
+      .of(yup.number().required('File ID is required'))
+      .optional(),
     files: yup
       .array()
       .of(yup.mixed().required('File is required'))
-      .min(1, 'At least one file is required')
-      .max(maxFiles, `${userRole}s can upload maximum ${maxFiles} file${maxFiles > 1 ? 's' : ''}`)
-      .required('Files are required'),
+      .optional(),
+  }).test('at-least-one-file', 'At least one file is required (either existing or new)', function(value) {
+    const fileIds = value.fileIds || [];
+    const files = value.files || [];
+    
+    if (fileIds.length === 0 && files.length === 0) {
+      return this.createError({ message: 'At least one file is required (either existing or new)' });
+    }
+    
+    const totalFiles = fileIds.length + files.length;
+    if (totalFiles > maxFiles) {
+      return this.createError({ 
+        message: `${userRole}s can process maximum ${maxFiles} file${maxFiles > 1 ? 's' : ''}` 
+      });
+    }
+    
+    return true;
   }) as yup.ObjectSchema<{
     jobDescription?: string;
     jobDescriptionId?: number;
-    files: File[];
+    fileIds?: number[];
+    files?: File[];
   }>;
 };
 

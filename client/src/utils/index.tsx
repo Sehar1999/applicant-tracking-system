@@ -45,3 +45,24 @@ export const transformSentence = (sentence: string) => {
 
   return transformedSentence;
 };
+
+export const getFileNameFromUrl = (fileUrl: string): string => {
+  try {
+    const url = new URL(fileUrl);
+    const pathParts = url.pathname.split("/");
+    const lastPart = pathParts[pathParts.length - 1];
+    // Remove any query parameters and get the filename
+    const fileName = lastPart.split("?")[0];
+    // Remove timestamp prefix if present (format: timestamp-filename.ext)
+    const parts = fileName.split("-");
+    if (parts.length > 1) {
+      // Check if first part is a timestamp (numeric)
+      if (!isNaN(Number(parts[0]))) {
+        return parts.slice(1).join("-");
+      }
+    }
+    return fileName;
+  } catch {
+    return "Unknown file";
+  }
+};

@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { endpoints } from "../constants";
-import type { FileComparisonResponse, LoginFormType, LoginResponse, ProfilePictureResponse, ProfileUpdateFormType, ProfileUpdateResponse, ResumeResponse, SignupFormType, SignupResponse } from "../types";
+import type { FileComparisonResponse, LoginFormType, LoginResponse, ProfilePictureResponse, ProfileUpdateFormType, ProfileUpdateResponse, ResumeResponse, SignupFormType, SignupResponse, FileSelectionResponse } from "../types";
 import { api } from "./fetcher";
 
 export const useLogin = () =>
@@ -31,6 +31,14 @@ export const useGetResumes = () =>
     queryKey: ["resumes"],
     queryFn: async () => {
       return api.get<ResumeResponse>(endpoints.files.myFiles);
+    },
+  });
+
+export const useGetUserCVFiles = () =>
+  useQuery({
+    queryKey: ["user-cv-files"],
+    queryFn: async () => {
+      return api.get<FileSelectionResponse>(endpoints.files.myFiles);
     },
   });
 

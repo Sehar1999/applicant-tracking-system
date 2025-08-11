@@ -5,7 +5,7 @@ import { authenticateToken } from '../middlewares/auth';
 const router = Router();
 
 router.post('/upload', authenticateToken, upload.single('file'), uploadFile);
-router.post('/compare', authenticateToken, upload.array('files'), compareFiles);
+router.post('/compare', authenticateToken, upload.array('files', 5), compareFiles);
 router.put('/profile-picture', authenticateToken, upload.single('file'), updateProfilePicture);
 router.get('/my-files', authenticateToken, getUserFiles);
 router.delete('/:fileId', authenticateToken, deleteFile);

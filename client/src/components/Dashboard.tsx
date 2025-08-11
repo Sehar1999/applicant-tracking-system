@@ -17,6 +17,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { createCompareFilesSchema } from "../Schemas";
 import { useCompareFiles } from "../service.ts";
 import { CustomController } from "./CustomController";
+import { FileSelection } from "./FileSelection";
 import { useAuthStore } from "../zustand/auth/store";
 import { UserRoleEnum, type FileComparisonResponse } from "../types";
 import { API_BASE_URL, endpoints, ROUTES } from "../constants";
@@ -49,11 +50,13 @@ export const Dashboard = () => {
   const methods = useForm<{
     jobDescription?: string;
     jobDescriptionId?: number;
-    files: File[];
+    fileIds?: number[];
+    files?: File[];
   }>({
     resolver: yupResolver(createCompareFilesSchema(userRole)),
     defaultValues: {
       jobDescription: "",
+      fileIds: [],
       files: [],
     },
   });
@@ -97,7 +100,7 @@ export const Dashboard = () => {
     fetchJobDescription();
   }, [jdId, accessToken]);
 
-  const onSubmit = (data: { jobDescription?: string; jobDescriptionId?: number; files: File[] }) => {
+  const onSubmit = (data: { jobDescription?: string; jobDescriptionId?: number; fileIds?: number[]; files?: File[] }) => {
     const payload = new FormData();
     
     // If we have a selected job description (from jdId), send the ID
@@ -108,9 +111,19 @@ export const Dashboard = () => {
       payload.append("jobDescription", data.jobDescription || "");
     }
     
-    data.files.forEach((file: File) => {
-      payload.append("files", file);
-    });
+    // Add file IDs if any are selected
+    if (data.fileIds && data.fileIds.length > 0) {
+      data.fileIds.forEach((fileId: number) => {
+        payload.append("fileIds", fileId.toString());
+      });
+    }
+    
+    // Add new files if any are uploaded
+    if (data.files && data.files.length > 0) {
+      data.files.forEach((file: File) => {
+        payload.append("files", file);
+      });
+    }
 
     mutate(payload, {
       onSuccess: (data: FileComparisonResponse) => {
@@ -131,16 +144,19 @@ export const Dashboard = () => {
     navigate(ROUTES.main.dashboard, { replace: true });
     reset();
     setValue('jobDescriptionId', undefined);
+    setValue('fileIds', []);
+    setValue('files', []);
   };
 
   const handleBackToJobs = () => {
     navigate(ROUTES.main.jobs);
   };
 
-  const { jobDescription, files } = watch();
+  const { jobDescription, fileIds, files } = watch();
   
   // Determine if we should show the comparison button
-  const canCompare = selectedJobDescription ? files.length > 0 : (jobDescription && files.length > 0);
+  const totalFiles = (fileIds?.length || 0) + (files?.length || 0);
+  const canCompare = selectedJobDescription ? totalFiles > 0 : (jobDescription && totalFiles > 0);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -173,18 +189,9 @@ export const Dashboard = () => {
         </Box>
 
         <Box sx={{ display: "flex", gap: 2 }}>
-          {comparisonResults ? (
+          {comparisonResults && (
             <Button variant="outlined" onClick={handleNewComparison}>
               New Comparison
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              disabled={isPending || !canCompare}
-              onClick={handleSubmit(onSubmit)}
-            >
-              Compare
-              {isPending && <CircularProgress size={20} sx={{ ml: 1 }} />}
             </Button>
           )}
         </Box>
@@ -288,21 +295,30 @@ export const Dashboard = () => {
                 flexDirection: "column",
               }}
             >
-              <Typography variant="h6" gutterBottom>
-                Document Upload
-              </Typography>
               <Box sx={{ flex: 1 }}>
-                <CustomController
-                  controllerName="files"
-                  controllerLabel=""
-                  fieldType="documentUpload"
+                <FileSelection
+                  selectedFileIds={fileIds || []}
+                  onFileIdsChange={(newFileIds) => setValue('fileIds', newFileIds)}
+                  selectedFiles={files || []}
+                  onFilesChange={(newFiles) => setValue('files', newFiles)}
                   maxFiles={maxFiles}
                   isDisabled={isPending}
                 />
               </Box>
             </Box>
           </Box>
-        </FormProvider>
+
+          {!comparisonResults && <Box display='flex' justifyContent='flex-end' width='100%' mt='2rem'>
+            <Button
+              variant="contained"
+              disabled={isPending || !canCompare}
+              onClick={handleSubmit(onSubmit)}
+            >
+              Compare
+              {isPending && <CircularProgress size={20} sx={{ ml: 1 }} />}
+            </Button>
+          </Box>
+        }        </FormProvider>
       ) : (
         <ComparisonResults results={comparisonResults} />
       )}
