@@ -372,8 +372,6 @@ export const fetchFile = async (req: AuthRequest, res: Response): Promise<void> 
         timeout: 30000, // 30 second timeout
       });
 
-      console.log("Cloudinary response status:", response.status);
-
       // Extract filename from URL or use a default
       const urlParts = attachment.fileUrl.split('/');
       const fileNameWithExtension = urlParts[urlParts.length - 1];
@@ -574,12 +572,33 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
           responseType: 'arraybuffer',
           timeout: 30000,
         });
+        // Detect file type using magic bytes since Cloudinary URL doesn't preserve extensions
+        const buffer = Buffer.from(response.data);
+        let correctMimetype = 'application/pdf'; // default
+        
+        // Check magic bytes for file type detection
+        if (buffer.length >= 4) {
+          const magicBytes = buffer.slice(0, 4);
+          
+          // ZIP format (used by .docx files)
+          if (magicBytes[0] === 0x50 && magicBytes[1] === 0x4B && magicBytes[2] === 0x03 && magicBytes[3] === 0x04) {
+            correctMimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          }
+          // PDF format
+          else if (magicBytes[0] === 0x25 && magicBytes[1] === 0x50 && magicBytes[2] === 0x44 && magicBytes[3] === 0x46) {
+            correctMimetype = 'application/pdf';
+          }
+          // DOC format (OLE compound file)
+          else if (magicBytes[0] === 0xD0 && magicBytes[1] === 0xCF && magicBytes[2] === 0x11 && magicBytes[3] === 0xE0) {
+            correctMimetype = 'application/msword';
+          }
+        }
 
         // Create a mock file object for parsing
         const mockFile: Express.Multer.File = {
           buffer: Buffer.from(response.data),
           originalname: attachment.fileUrl.split('/').pop() || 'unknown.pdf',
-          mimetype: response.headers['content-type'] || 'application/pdf',
+          mimetype: correctMimetype,
           fieldname: 'file',
           encoding: '7bit',
           size: response.data.length,
@@ -591,7 +610,6 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
 
         // Parse file content
         const fileContent = await parseFileContent(mockFile);
-
         // OpenAI comparison
         const comparisonResult = await compareCVWithJD(fileContent, actualJobDescription);
         
@@ -648,6 +666,7 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
         };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.log('Error message: ', errorMessage);
         return {
           success: false,
           fileName: file.originalname,
@@ -682,10 +701,6 @@ export const compareFiles = async (req: AuthRequest, res: Response): Promise<voi
         });
       }
     });
-
-    // Console log the job description
-    console.log(`Job Description: ${actualJobDescription}`);
-    console.log('---');
 
     const comparisonResponse: FileComparisonResponse = {
       success: true,
